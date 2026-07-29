@@ -1,1 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+@font-face {
+  font-family: "Fragment Mono";
+  src: local("Fragment Mono"), local("IBM Plex Mono");
+  font-weight: 400 500;
+  font-display: swap;
+}
+
+:root {
+  --paper: #ffffff;
+  --ink: #0a0a0a;
+  --seal: #f5c400;
+  --seal-deep: #b38f00;
+  --seal-press: #1a1600;
+  --graphite: #8a8a82;
+  --graphite-line: #e5e4dd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto; /* Lenis takes over smooth scrolling */
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--seal);
+  color: var(--ink);
+}
+
+/* Visible keyboard focus everywhere — accessibility floor, not optional */
+:focus-visible {
+  outline: 2px solid var(--seal-deep);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Reduced motion respected globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.redaction-bar {
+  background: var(--ink);
+  transform-origin: left;
+}
+
+.mono-tag {
+  font-family: "Fragment Mono", "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+
+.hairline {
+  border-color: var(--graphite-line);
+}
+
+.scanline-noise {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(10, 10, 10, 0.025) 0px,
+    rgba(10, 10, 10, 0.025) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
