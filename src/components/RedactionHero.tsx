@@ -30,7 +30,7 @@ export function RedactionHero() {
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 w-full">
         <div className="mb-8 flex items-center gap-3">
-          <span className="mono-tag text-xs uppercase tracking-widest text-graphite">
+          <span className="mono-tag text-xs uppercase tracking-widest text-ink border-b-2 border-seal pb-0.5">
             Case File
           </span>
           <span className="h-px flex-1 bg-graphite-line" />
@@ -38,15 +38,16 @@ export function RedactionHero() {
         </div>
 
         <h1 className="font-mono text-4xl md:text-6xl font-medium leading-[1.05] tracking-tight text-ink mb-10 max-w-3xl">
-          The verdict is only as good as the evidence it can't fake.
+          The verdict is only as good as{" "}
+          <span className="text-seal-deep">the evidence it can't fake</span>.
         </h1>
 
-        <div className="border border-ink/10 bg-paper shadow-[0_1px_0_0_rgba(10,10,10,0.05)] rounded-sm">
-          <div className="border-b border-graphite-line px-5 py-3 flex items-center justify-between">
-            <span className="mono-tag text-xs text-graphite uppercase tracking-wider">
+        <div className="border-2 border-ink bg-paper shadow-[4px_4px_0_0_rgba(245,196,0,1)] rounded-sm">
+          <div className="border-b-2 border-ink px-5 py-3 flex items-center justify-between bg-ink">
+            <span className="mono-tag text-xs text-seal uppercase tracking-wider">
               Disclosure Report — Pinned Evidence
             </span>
-            <span className="mono-tag text-xs text-seal-deep animate-blink">● live</span>
+            <span className="mono-tag text-xs text-seal animate-blink">● live</span>
           </div>
 
           <div className="px-5 py-6 space-y-4">
@@ -87,14 +88,20 @@ function RedactionLine({
   const start = 0.05 + index * 0.08;
   const end = start + 0.22;
   const scaleX = useTransform(scrollYProgress, [start, end], [1, 0]);
+  // The final line (the verdict payoff) gets the yellow treatment on
+  // reveal, so the climactic moment of the redaction-lift actually
+  // reads as colored, not just another line of black text appearing.
+  const isPayoffLine = index === 3;
 
   return (
-    <div className="relative font-mono text-sm md:text-base text-ink leading-relaxed">
-      <span className="relative z-0">{line.text}</span>
+    <div className="relative font-mono text-sm md:text-base leading-relaxed">
+      <span className={`relative z-0 ${isPayoffLine ? "text-seal-deep font-semibold" : "text-ink"}`}>
+        {line.text}
+      </span>
       {!prefersReduced ? (
         <motion.span
           style={{ scaleX, width: line.redactedWidth }}
-          className="redaction-bar absolute left-0 top-0 h-full z-10"
+          className="redaction-bar absolute left-0 top-0 h-full z-10 border-r-2 border-seal"
           aria-hidden="true"
         />
       ) : (

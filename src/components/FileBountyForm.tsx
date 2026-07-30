@@ -75,7 +75,7 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="border border-graphite-line rounded-sm bg-paper divide-y divide-graphite-line"
+      className="border-2 border-ink rounded-sm bg-paper divide-y divide-graphite-line"
     >
       <div className="px-6 py-4">
         <h3 className="font-mono text-sm uppercase tracking-widest text-graphite mb-1">

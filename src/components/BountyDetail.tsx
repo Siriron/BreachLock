@@ -138,7 +138,7 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border border-graphite-line rounded-sm bg-paper divide-y divide-graphite-line"
+      className="border-2 border-ink rounded-sm bg-paper divide-y divide-graphite-line"
     >
       <div className="px-6 py-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

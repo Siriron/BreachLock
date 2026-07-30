@@ -90,7 +90,7 @@ export function BountyList({
   }
 
   return (
-    <div className="border border-graphite-line rounded-sm divide-y divide-graphite-line overflow-hidden">
+    <div className="border-2 border-ink rounded-sm divide-y divide-graphite-line overflow-hidden">
       {entries.map((entry, i) => (
         <motion.button
           key={entry.bounty_id}

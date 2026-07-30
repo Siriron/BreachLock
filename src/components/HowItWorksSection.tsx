@@ -27,7 +27,7 @@ export function HowItWorksSection() {
   return (
     <section className="py-24 md:py-32 px-6 md:px-10 max-w-5xl mx-auto">
       <div className="mb-14">
-        <span className="mono-tag text-xs text-graphite uppercase tracking-wider block mb-3">
+        <span className="mono-tag text-xs text-seal-deep uppercase tracking-wider block mb-3">
           Section 03 — Lifecycle
         </span>
         <h2 className="font-mono text-2xl md:text-3xl text-ink max-w-lg leading-tight">
@@ -36,7 +36,7 @@ export function HowItWorksSection() {
       </div>
 
       <div className="relative">
-        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-graphite-line hidden md:block" />
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-seal hidden md:block" />
         <div className="space-y-10 md:space-y-14">
           {STEPS.map((step, i) => (
             <motion.div
@@ -47,8 +47,8 @@ export function HowItWorksSection() {
               transition={{ delay: i * 0.1, duration: 0.5 }}
               className="relative flex gap-6 items-start pl-0 md:pl-0"
             >
-              <div className="relative z-10 shrink-0 w-8 h-8 rounded-full bg-paper border-2 border-ink flex items-center justify-center">
-                <span className="mono-tag text-[10px] text-ink">{step.n}</span>
+              <div className="relative z-10 shrink-0 w-8 h-8 rounded-full bg-ink border-2 border-ink flex items-center justify-center">
+                <span className="mono-tag text-[10px] text-seal">{step.n}</span>
               </div>
               <div className="pt-0.5">
                 <h3 className="font-mono text-lg text-ink mb-1">{step.title}</h3>

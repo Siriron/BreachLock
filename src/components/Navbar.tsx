@@ -16,11 +16,13 @@ export function Navbar({
   const { account, connect, connecting } = useGenLayer(network);
 
   return (
-    <header className="sticky top-0 z-50 bg-paper/90 backdrop-blur-sm border-b border-graphite-line">
+    <header className="sticky top-0 z-50 bg-paper/90 backdrop-blur-sm border-b-2 border-ink">
       <div className="max-w-6xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between gap-4">
         <a href="/" className="flex items-center gap-2.5 shrink-0">
           <BreachLockMark />
-          <span className="font-mono text-sm tracking-wide text-ink">BreachLock</span>
+          <span className="font-mono text-sm tracking-wide text-ink">
+            Breach<span className="text-seal-deep">Lock</span>
+          </span>
         </a>
 
         <div className="flex items-center gap-3">

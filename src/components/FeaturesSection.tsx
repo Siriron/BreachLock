@@ -35,7 +35,7 @@ export function FeaturesSection() {
         <h2 className="font-mono text-2xl md:text-3xl text-ink max-w-lg leading-tight">
           Built so the evidence can't be picked by whoever's telling the story.
         </h2>
-        <span className="mono-tag text-xs text-graphite uppercase tracking-wider">
+        <span className="mono-tag text-xs text-seal-deep uppercase tracking-wider">
           Section 02 — Mechanism
         </span>
       </div>
@@ -48,7 +48,7 @@ export function FeaturesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: i * 0.08, duration: 0.5 }}
-            className={`border border-graphite-line rounded-sm p-6 bg-paper hover:border-ink transition-colors ${f.span}`}
+            className={`border-2 border-ink rounded-sm p-6 bg-paper hover:shadow-[3px_3px_0_0_rgba(245,196,0,1)] transition-shadow ${f.span}`}
           >
             <f.icon className="w-5 h-5 text-seal-deep mb-4" strokeWidth={1.5} />
             <h3 className="font-mono text-sm uppercase tracking-wide text-ink mb-2">{f.title}</h3>

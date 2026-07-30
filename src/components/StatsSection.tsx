@@ -21,7 +21,7 @@ function AnimatedNumber({ value }: { value: number }) {
   }, [springValue]);
 
   return (
-    <span ref={ref} className="font-mono text-4xl md:text-5xl text-ink tabular-nums">
+    <span ref={ref} className="font-mono text-4xl md:text-5xl text-seal-deep tabular-nums">
       {display}
     </span>
   );
@@ -62,7 +62,7 @@ export function StatsSection({ network }: { network: NetworkKey }) {
   return (
     <section className="py-24 md:py-32 px-6 md:px-10 max-w-5xl mx-auto border-t border-graphite-line">
       <div className="mb-14">
-        <span className="mono-tag text-xs text-graphite uppercase tracking-wider block mb-3">
+        <span className="mono-tag text-xs text-seal-deep uppercase tracking-wider block mb-3">
           Section 04 — Live on {network === "studionet" ? "StudioNet" : "Bradbury"}
         </span>
         <h2 className="font-mono text-2xl md:text-3xl text-ink max-w-lg leading-tight">
