@@ -64,11 +64,29 @@ export function useGenLayer(network: NetworkKey) {
     if (!eth) throw new Error("No wallet found.");
     if (!account) throw new Error("Wallet not connected.");
 
+    // account is string | null at the type level (it comes from
+    // eth_accounts/eth_requestAccounts, which return plain strings),
+    // but genlayer-js/viem's createClient expects the stricter
+    // `0x${string}` | Account | undefined for its `account` field.
+    // TypeScript's control-flow narrowing above only gets us to a
+    // non-null `string`, not to the template-literal type, so a real
+    // build (tsc, not the syntax-only esbuild check available during
+    // initial development without network access) correctly flagged
+    // this as an error. Rather than a bare `as` cast — which would
+    // silently accept any string, including a malformed one — verify
+    // the actual format at runtime first, so a genuinely malformed
+    // wallet address fails loudly here instead of producing a
+    // confusing downstream error inside the SDK.
+    if (!/^0x[0-9a-fA-F]{40}$/.test(account)) {
+      throw new Error(`Wallet returned an unexpected address format: ${account}`);
+    }
+    const accountHex = account as `0x${string}`;
+
     await ensureChain(network);
 
     const client = createClient({
       chain: CHAIN_OBJECTS[network],
-      account,
+      account: accountHex,
       provider: eth, // required — confirmed in Sigil's working code, section 7
     });
 
@@ -88,10 +106,28 @@ export function useGenLayer(network: NetworkKey) {
 
   const contractAddress = CONTRACT_ADDRESSES[network];
 
+  function assertContractAddress(): `0x${string}` {
+    // Same unguarded-`as`-cast pattern that produced the real Vercel
+    // build error on the `account` field (see getWriteClient above) —
+    // found here by checking every other place this project casts a
+    // plain string to the stricter `0x${string}` type, not by waiting
+    // for it to fail the same way. contractAddress falls back to ""
+    // if the env var isn't set (see config/chains.ts); an empty string
+    // cast straight through would compile fine but fail confusingly at
+    // the actual RPC call. Guard it here instead, with a clear error.
+    if (!/^0x[0-9a-fA-F]{40}$/.test(contractAddress)) {
+      throw new Error(
+        `Contract address for ${network} is not set or malformed. Check the ` +
+          `VITE_CONTRACT_ADDRESS_${network.toUpperCase()} environment variable.`
+      );
+    }
+    return contractAddress as `0x${string}`;
+  }
+
   const readContractMethod = useCallback(
     async (method: string, args: any[] = []) => {
       const raw = await readClient.readContract({
-        address: contractAddress as `0x${string}`,
+        address: assertContractAddress(),
         functionName: method,
         args,
       });
@@ -107,7 +143,7 @@ export function useGenLayer(network: NetworkKey) {
       const value = valueGen ? parseEther(String(valueGen)) : BigInt(0);
 
       const txHash = await client.writeContract({
-        address: contractAddress as `0x${string}`,
+        address: assertContractAddress(),
         functionName: method,
         args,
         value, // required even when unused
