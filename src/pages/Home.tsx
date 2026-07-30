@@ -32,13 +32,13 @@ export function Home() {
             <div className="max-w-5xl mx-auto px-6 md:px-10 flex flex-wrap gap-4 justify-center pb-4">
               <button
                 onClick={() => setView("file")}
-                className="mono-tag text-xs uppercase tracking-wider px-5 py-2.5 border border-ink rounded-sm hover:bg-ink hover:text-seal transition-colors"
+                className="mono-tag text-xs uppercase tracking-wider px-5 py-2.5 bg-ink text-seal rounded-sm hover:bg-seal-press transition-colors"
               >
                 File a Disclosure
               </button>
               <button
                 onClick={() => setView("browse")}
-                className="mono-tag text-xs uppercase tracking-wider px-5 py-2.5 border border-graphite-line rounded-sm text-graphite hover:border-ink hover:text-ink transition-colors"
+                className="mono-tag text-xs uppercase tracking-wider px-5 py-2.5 border-2 border-ink rounded-sm text-ink hover:bg-ink hover:text-seal transition-colors"
               >
                 Browse Disclosures
               </button>
