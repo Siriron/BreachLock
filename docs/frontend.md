@@ -1,5 +1,50 @@
 # Frontend
 
+## Build errors found on first real Vercel build, and fixes
+
+Nothing in this project touched a real `npm install` or `tsc` run
+during initial development — no network access was available, so all
+prior verification was syntax-only (esbuild) rather than a real
+typecheck against actual installed dependencies. The first real Vercel
+build surfaced two genuine errors that syntax checking alone couldn't
+have caught:
+
+1. **`Property 'env' does not exist on type 'ImportMeta'`**
+   (`src/config/chains.ts`). Missing `src/vite-env.d.ts` — the file
+   that gives TypeScript the ambient `ImportMeta.env` typing Vite
+   projects rely on for `import.meta.env.VITE_*`. Standard Vite
+   scaffolding always includes this; it was omitted here because the
+   project was hand-assembled rather than generated via
+   `npm create vite@latest`. Fixed by adding the file.
+2. **`Type 'string' is not assignable to type '0x${string}' | Account | undefined'`**
+   (`src/lib/useGenLayer.ts`, the `createClient({ account, ... })`
+   call). The wallet-connected `account` state is typed as
+   `string | null` (it comes straight from `eth_accounts`/
+   `eth_requestAccounts`), but `genlayer-js`/viem's `createClient`
+   wants the stricter template-literal type. A truthiness check
+   narrows `string | null` to `string`, not down to the template
+   literal, so `tsc` correctly flagged this. Fixed with a runtime regex
+   check (`/^0x[0-9a-fA-F]{40}$/`) before the cast, rather than a bare
+   `as` assertion — a malformed address now fails with a clear error
+   here instead of a confusing one further inside the SDK.
+
+While fixing #2, the same unguarded-cast pattern was found and fixed at
+two more call sites (`readContractMethod`/`writeContractMethod`'s
+`contractAddress as \`0x\${string}\``) by deliberately checking every
+other place this project casts a plain string to that stricter type,
+rather than only patching the one line the build error pointed at.
+`assertContractAddress()` now guards both.
+
+**Still not independently confirmed here:** whether these three fixes
+are the *only* remaining build errors. This environment has no network
+access, so a full `npm install` + real `tsc`/`vite build` run — the
+same thing Vercel actually does — has not been reproduced locally. A
+local global `tsc` binary (version 6.0.3, vs. this project's targeted
+`^5.5.3`) was tried but is a version mismatch and returned an
+ambiguous, likely non-representative result rather than a real
+confirmation. Treat the next Vercel build log as the actual source of
+truth, the same way this one was.
+
 ## SDK wiring
 
 `src/lib/useGenLayer.ts` is the single point of contact with the chain.
