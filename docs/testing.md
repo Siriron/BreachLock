@@ -109,6 +109,82 @@ refunded.
 - Confirm wallet reconnects silently on page reload if previously
   authorized (`eth_accounts`, not `eth_requestAccounts`).
 
+## Live test results (first real GenVM runs, Jul 30 2026)
+
+Five real transactions run against the StudioNet deployment
+(`0x04781181f8071B44411bF0Ebf1bc94e049Fc4677`), bounty #1:
+
+1. **`file_bounty`** — succeeded. Confirmed the 14-day response deadline
+   arithmetic exactly matches `filed_at + 14 days` against real on-chain
+   timestamps (`2026-07-30T04:08:03` → `2026-08-13T04:08:03`) — the
+   first live confirmation of the hand-written date-arithmetic helpers
+   working correctly outside the earlier fuzz test.
+2. **`resolve_dispute` called early (before rebuttal, before deadline)**
+   — correctly reverted with `AssertionError: response window still
+   open; wait for rebuttal or the 14-day deadline`, confirmed by 5/5
+   validators independently (`Consensus Result: Accepted` on the
+   *error*, meaning unanimous agreement that this call should fail).
+   Bounty state confirmed untouched afterward. This is the Priority 1b
+   scenario's early-resolution guard working correctly.
+3. **`rebut`** — succeeded cleanly, `status: "rebutted"` returned,
+   sanitized rebuttal text confirmed intact in the decoded transaction
+   input.
+4. **`resolve_dispute` called again (now rebutted)** — this was meant
+   to test the full nondet path (`leader_fn`/`validator_fn`, the actual
+   LLM judgment) for the first time. Instead, it hit the **fail-closed
+   unreachable-source path**: `_fetch_text` on the reporter-cited commit
+   (`octocat/Hello-World` at `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d`,
+   path `README`) failed inside GenVM, resolving cleanly to
+   `verdict_severity: "invalid"`, `confidence_bps: 1000`, with the note
+   `"resolved without consensus: reporter-cited source unreachable"` —
+   the exact terminal-verdict fix documented in `docs/contracts.md`,
+   confirmed working on a real deployment for the first time.
+5. **Manual follow-up check:** the exact same URL
+   (`https://raw.githubusercontent.com/octocat/Hello-World/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/README`)
+   was opened directly in a normal mobile browser and returned the
+   file's real content ("Hello World!") cleanly — confirming the commit
+   hash, path, and repo were all correct, and the file is genuinely
+   fetchable from outside GenVM.
+
+**What this confirms, solidly:** the deadline math, the early-
+resolution guard, the rebut flow, and — critically — the fail-closed
+behavior on an unreachable evidence source all work correctly on a real
+deployment. The bounty never got stuck in an intermediate state at any
+point across all four write calls, which is the core guarantee the two
+bugs documented in `docs/contracts.md` were fixed to provide.
+
+**What remains a genuinely open question, not yet resolved:** why did
+`gl.nondet.web.get()` fail to fetch a URL that a normal browser fetches
+without issue? Neither confirmed nor ruled out:
+- Whether this is specific to `raw.githubusercontent.com` (a redirect
+  behavior, header requirement, or rate limit GenVM's fetch client
+  handles differently than a browser).
+- Whether it's specific to this one commit/path (unlikely, given the
+  browser fetch succeeded cleanly, but not impossible if GenVM's fetch
+  path differs in some URL-specific way).
+- Whether `gl.nondet.web.get()` itself is the right method to be
+  calling at all — GenLayer's own changelog shows an evolution from
+  `gl.get_webpage()` (v0.1.0) to `gl.nondet.web.render()` (v0.1.3), and
+  a separate "Web Access" doc page's examples use `gl.nondet.web.request()`
+  rather than `.get()`. This project's use of `.get()` was confirmed at
+  the time against three independent official doc pages (see
+  `docs/contracts.md`'s Bug 1 writeup), but that confirmation has not
+  been re-checked against these newer-looking `.render()`/`.request()`
+  examples, and it's possible `.get()` is a less-exercised or
+  differently-behaved corner of the current API.
+- Whether this was transient (a timeout, a blip) rather than a
+  systematic issue — only tested once, not repeated.
+
+**If picking this back up:** the fastest way to actually narrow this
+down would be filing a second bounty against a different repo/commit/
+path and seeing whether it also fails, or checking GenLayer's own
+community channels for others hitting fetch issues with this specific
+method. Neither has been done yet. Until one of these happens, treat
+the evidence-fetch leg of this contract as *unverified for the success
+case* — the failure case is now proven solid, but whether a real,
+successful fetch-and-judge cycle works end-to-end on live GenVM remains
+untested.
+
 ## Explicitly not yet tested, flagged rather than assumed fine
 
 - Whether GenVM transaction writes are in fact atomic (the assumption
@@ -117,8 +193,23 @@ refunded.
   pattern in this contract being consistent with it, but has not been
   independently confirmed against GenLayer's own documentation or
   observed directly. If 1a's test above doesn't behave as expected,
-  this assumption is the first thing to re-examine.
+  this assumption is the first thing to re-examine. **Update:** the
+  live test above (result #2) showed a reverted `resolve_dispute` call
+  leaving bounty state fully untouched, which is consistent with atomic
+  writes, though that test never reached the specific status-write-
+  then-fetch-fail sequence the original concern was about (see
+  `docs/contracts.md`'s correctness note) — it's supporting evidence,
+  not a direct confirmation of the exact scenario.
 - The exact shape of a write transaction's receipt object in
   `genlayer-js` (e.g. where a write's JSON return value surfaces, if
   anywhere, on the receipt) — deliberately left unparsed in the
-  frontend rather than guessed at; see `docs/frontend.md`.
+  frontend rather than guessed at; see `docs/frontend.md`. **Update:**
+  the explorer's own UI does show a `Return Value` field with the
+  correctly-decoded JSON for every write tested so far (confirmed
+  directly in screenshots during live testing), which confirms the
+  *contract* is returning the right data — but this is the block
+  explorer's own decoding, not necessarily proof of what shape
+  `genlayer-js`'s `waitForTransactionReceipt()` actually hands back to
+  frontend code. Still worth confirming directly before un-deferring
+  this in the frontend.
+
