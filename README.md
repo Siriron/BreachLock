@@ -90,6 +90,23 @@ npm run dev
 5. Push to GitHub, deploy frontend to Vercel, set the two
    `VITE_CONTRACT_ADDRESS_*` env vars.
 
+## First live test results (Jul 30 2026)
+
+Bounty #1 filed and exercised against StudioNet. Confirmed working:
+filing, the 14-day deadline arithmetic (verified against real on-chain
+timestamps), the early-resolution guard (correctly blocked by 5/5
+validators before the deadline), rebutting, and — the more important
+one — the fail-closed path when cited evidence can't be fetched
+(resolved cleanly to `invalid` rather than getting stuck).
+
+**Open question, not yet resolved:** the evidence fetch itself failed
+inside GenVM for a URL independently confirmed to work fine in a normal
+browser. The failure path handled it correctly (that's real, proven
+signal), but a real successful fetch-and-judge cycle — the core thing
+this contract exists to do — has not yet been exercised end to end.
+See `docs/testing.md`'s "Live test results" section for the full
+writeup and next steps if picking this back up.
+
 ## Known issues found & fixed during build
 
 Documented here in full rather than silently corrected, since this is
