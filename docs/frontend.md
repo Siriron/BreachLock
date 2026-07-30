@@ -45,6 +45,50 @@ ambiguous, likely non-representative result rather than a real
 confirmation. Treat the next Vercel build log as the actual source of
 truth, the same way this one was.
 
+## Second build attempt — a different failure stage entirely
+
+The first two fixes above got `tsc` to pass with zero errors. The very
+next build failed at a *different* stage: Vite/Rollup's actual bundling
+step, with `Rollup failed to resolve import "@/App" from
+"/vercel/path0/src/main.tsx"`.
+
+**Root cause:** `tsconfig.json` has a `paths` mapping for `@/*` →
+`./src/*`, which is what let `tsc` type-check every `@/` import
+successfully — but `tsc`'s `paths` config only affects
+*type-checking*. Vite's actual bundler (Rollup, under the hood) does
+its own, completely separate module resolution and has no knowledge of
+`tsconfig.json`'s `paths` unless told explicitly via its own
+`resolve.alias` config, which `vite.config.ts` didn't have at all. This
+meant every single `@/` import across the whole project (confirmed: 27
+import statements across 10 files) would have broken at build time,
+even though the type-checking stage saw nothing wrong.
+
+**Fixed** by adding `resolve.alias` to `vite.config.ts`, mapping `@` to
+`path.resolve(__dirname, "./src")` — the standard, widely-documented
+pattern for exactly this Vite error. Confirmed against multiple current
+sources rather than assumed from memory, since this is the actual fix
+Vercel will re-run, not just another local syntax pass.
+
+`@types/node` was also added as a dev dependency, since `vite.config.ts`
+now imports Node's `path` module and uses `__dirname` — both need
+`@types/node` for proper typing (confirmed this is standard practice
+alongside the alias fix, not an incidental addition). This file sits
+outside `tsconfig.json`'s `"include": ["src"]` scope, so its absence
+wasn't actually blocking the build, but leaving a real type-package gap
+in place because it happens not to matter yet is exactly the kind of
+thing worth closing properly rather than leaving as a silent gap.
+
+**Why this wasn't caught earlier:** syntax-only esbuild checks (used
+throughout initial development, since no network access meant no real
+`npm install`) don't perform path-alias resolution against a real
+`tsconfig.json` the way Rollup does — they check that a file parses as
+valid syntax, not that its imports actually resolve to real files via a
+specific bundler's resolution rules. This is a distinct failure class
+from the first two `tsc` errors, caught at a later build stage, and is
+exactly why the honest note above says to treat each new Vercel log as
+its own source of truth rather than assume the previous round's fixes
+were exhaustive.
+
 ## SDK wiring
 
 `src/lib/useGenLayer.ts` is the single point of contact with the chain.
