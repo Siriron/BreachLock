@@ -169,3 +169,4 @@ deploying, or social shares will show a broken image.
 ## License
 
 MIT — see `LICENSE`.
+
