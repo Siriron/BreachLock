@@ -1,5 +1,4 @@
 # BreachLock
-
 Bug bounty verdict arbitration on GenLayer.
 
 A reporter stakes GEN and discloses a vulnerability as a detailed
