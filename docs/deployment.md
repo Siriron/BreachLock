@@ -27,20 +27,31 @@ Faucet: https://testnet-faucet.genlayer.foundation
 
 ## Deployed addresses
 
-Both networks live, deployed Jul 29, 2026.
+Current deployment — the claim-based contract (two-arg `file_bounty`,
+no evidence fetch). Both networks live, deployed Aug 6, 2026.
 
-- **StudioNet:** `0x04781181f8071B44411bF0Ebf1bc94e049Fc4677` —
+- **StudioNet:** `0x950d2497Ac764dead125EF95209eC28deE34517d` —
   deploy tx:
-  [`0xf8d0d63081f2a68257e3ca11ebfa4374c97f11389570929a1531ab5440fa7904`](https://explorer-studio.genlayer.com/tx/0xf8d0d63081f2a68257e3ca11ebfa4374c97f11389570929a1531ab5440fa7904).
-  Independently verified: `GenVM Result: SUCCESS`, `Consensus Result:
-  Accepted`, status `FINALIZED`.
-- **Bradbury:** `0x4fdb53874d4C4247D32A5A0570d73684492932fc` —
-  [explorer link](https://explorer-bradbury.genlayer.com/address/0x4fdb53874d4C4247D32A5A0570d73684492932fc).
+  [`0xd9377d0d78a94753d3214bba4565557898702ba3f8bf02e5766ce9dcac273957`](https://explorer-studio.genlayer.com/tx/0xd9377d0d78a94753d3214bba4565557898702ba3f8bf02e5766ce9dcac273957).
+  Independently verified directly via the explorer: `GenVM Result:
+  SUCCESS`, `Consensus Result: Accepted`, status `FINALIZED`, deployed
+  Aug 6, 2026, 3:24:30 AM, creator `0x6c0173bbE686c193e2e0D1DB77e847a48dc66e9A`.
+- **Bradbury:** `0x04e379Db6e62b6851D4B85D3E31A1D32B49DF900` —
+  [explorer link](https://explorer-bradbury.genlayer.com/address/0x04e379Db6e62b6851D4B85D3E31A1D32B49DF900).
   Deploy tx hash not yet recorded here — add it once available. This
   network's explorer renders transaction data client-side, so it
   couldn't be independently confirmed the same way as StudioNet during
-  this record's writing; confirmed live and deployed by direct visual
-  check instead.
+  this record's writing; confirm live and deployed by direct visual
+  check instead before treating it as verified.
+
+**Prior deployment, superseded:** the earlier fetch-based contract
+(five-arg `file_bounty` — `repo_owner`/`repo_name`/`commit_hash`/
+`file_path`/`disputed_claim`/`claimed_severity`) was deployed to
+StudioNet at `0x04781181f8071B44411bF0Ebf1bc94e049Fc4677` and Bradbury
+at `0x4fdb53874d4C4247D32A5A0570d73684492932fc` on Jul 29, 2026. Those
+addresses are incompatible with the current frontend and current
+contract ABI — do not use them. See `docs/contracts.md`'s "Design
+history" section for why the fetch mechanism was removed.
 
 ## Frontend deploy (Vercel)
 

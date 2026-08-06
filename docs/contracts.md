@@ -6,65 +6,70 @@
 with three writes (`file_bounty`, `rebut`, `resolve_dispute`) and three
 views (`get_bounty`, `list_bounties`, `get_protocol_pool`).
 
-## Evidence construction — the core design decision
+## Design history: this contract originally fetched external evidence, and no longer does
 
-The contract never accepts a fetch URL from either party for the
-code-evidence leg. Instead, `file_bounty` takes four separate fields —
-`repo_owner`, `repo_name`, `commit_hash`, `file_path` — each run through
-strict sanitization, and `_build_raw_url()` constructs the actual fetch
-target from them:
+An earlier version of this contract fetched the actual disputed source
+code from a pinned commit — the fetch URL was always constructed by
+the contract itself from four pinned identity fields
+(`repo_owner`/`repo_name`/`commit_hash`/`file_path`), never accepted as
+a URL from either party, closing the "caller-selected page proves only
+itself" failure pattern a prior project in this line of work
+(Copyleft) had been rejected for.
 
-```python
-def _build_raw_url(repo_owner, repo_name, commit_hash, file_path) -> str:
-    return f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/{commit_hash}/{file_path}"
-```
+That design was removed after extensive live testing found that
+GenVM's sandbox consistently, deterministically rejects outbound
+fetches to external domains with `SystemError:6: forbidden`. This was
+confirmed against three structurally unrelated real domains — GitHub's
+raw-content service, GitLab's raw-file endpoint, and an IPFS gateway —
+identical denial every time, across every validator (matching
+`contract_state_hash` on every participant, so not node-specific
+flakiness). Two earlier fix attempts (switching the underlying SDK
+call from `gl.nondet.web.get()` to `gl.nondet.web.render()`, then
+switching the evidence host from GitHub to GitLab) were tried, based
+on real research at the time, and neither changed the outcome — both
+are preserved in full in `docs/testing.md`'s "Investigation" section,
+since the reasoning behind each attempt is still worth understanding
+even though neither turned out to be the actual cause.
 
-This is deliberate and is the single most important structural choice
-in this contract. A prior project in this line of work (Copyleft) had
-an evidence leg that was *documented* as independently fetching a
-disputed artifact, but the actual code fetched an unrelated field, and
-a second "independent" leg just re-fetched a URL the responding party
-had submitted — proving only that a page exists at that URL, the
-confirmed "caller-selected page proves only itself" rejection pattern.
-Making the fetch URL something the contract builds from pinned
-identity fields, rather than something either party can hand it
-directly, closes that gap by construction rather than by prompt
-wording.
+Whether this reflects a genuine GenVM sandbox restriction (e.g. an
+outbound domain allowlist) or something else was never conclusively
+answered before the decision was made to remove the fetch mechanism
+entirely rather than continue chasing external-cause theories. A
+question was posted to GenLayer's own Discord asking directly whether
+`gl.nondet.web.render()` permits arbitrary external domains; as of this
+writing, no definitive answer had come back.
 
-The reporter's vulnerability report and the project's rebuttal remain
-free text the model weighs — that's legitimate, since those really are
-one-sided claims, not the load-bearing artifact. Only the code-evidence
-leg gets the stricter treatment.
+**The consequence, stated plainly, not minimized:** this contract now
+judges severity from the reporter's and project's own written claims,
+not from independently fetched, contract-verified evidence. That is a
+real reduction in what this contract can prove. It is closer to "two
+parties argue, independent validators judge the argument" than to "an
+oracle-verified fact is judged." The adversarial structure — a
+reporter benefits from a false "valid" verdict, a project benefits
+from a false "invalid" one — still holds, which is why multi-validator
+consensus remains meaningful here rather than decorative (see this
+project's own concept-evaluation framework's Test 1 for that
+distinction), but a future revision that finds a working evidence-fetch
+path (once GenVM's actual domain policy is confirmed, one way or the
+other) would be a strictly stronger design than this one, not a
+lateral change. If picking this back up: check whether a definitive
+answer ever came back on the Discord question before re-attempting a
+fetch-based design from scratch.
 
-## Sanitization: two functions, not one, and why
+## The charter and what it now asks the model to judge
 
-Two separate sanitizers are used for URL-bound fields, not one shared
-one:
-
-- **`_segment_safe(s, max_len)`** — for `repo_owner`, `repo_name`,
-  `commit_hash`, and `patch_commit_hash`. Rejects `/` entirely, at any
-  position. These are genuinely single path segments in the resulting
-  URL.
-- **`_filepath_safe(s, max_len)`** — for `file_path` only. Allows
-  internal `/`, since real repo paths need it (`src/lib/foo.py`), but
-  still strips `..` and a leading `/`.
-
-**Why two functions:** an earlier draft used one shared sanitizer for
-all four URL-bound fields, permissive enough to allow `file_path`'s
-internal slashes. That meant a crafted `repo_owner` like
-`"victim-org/../attacker-org"` survived `..`-removal as
-`"victim-org//attacker-org"` — a malformed value that could still be
-passed into `_build_raw_url()`. This was found by writing an actual
-attack-input test (see `scripts/` history / conversation record — not
-reconstructed from memory here, verified directly against the running
-code), not by inspection. The resulting doubled-slash URL would very
-likely just 404 against GitHub's own routing rather than escape
-`raw.githubusercontent.com`, but a security boundary shouldn't depend
-on a downstream service's routing behavior to stay safe — especially
-in a contract whose entire design thesis is "don't trust a party-
-controlled value to land where you expect." Splitting the function so
-`repo_owner`/`repo_name`/`commit_hash` reject slashes outright removes
-the ambiguity structurally.
+With no fetched evidence, `_CHARTER` instructs the model to judge
+severity based on the plausibility, specificity, and internal
+consistency of the reporter's claim, weighed against the project's
+rebuttal if one was submitted — not against any externally-verified
+fact. A vague, generic claim should score lower confidence or
+`"invalid"`; a specific, technically detailed, internally consistent
+claim the rebuttal fails to meaningfully contest should score higher.
+This is a real, honest limitation: the model has no way to confirm a
+claim is *true*, only to judge whether it *reads as* well-formed and
+uncontested. See the design-history section above for the full
+reasoning behind why this is the current model rather than an
+evidence-verified one.
 
 ## The response-deadline design, and why silence escalates rather than resolves in either direction
 
@@ -73,10 +78,10 @@ callable once **either** `status == "rebutted"` **or** the deadline has
 passed. On silent expiry, the dispute is **not** auto-resolved as
 valid, and the reporter's stake is **not** simply refunded with the
 case closed. It escalates to a real resolution — judged off the
-reporter's report and the pinned code alone, with an empty rebuttal
-text the charter explicitly tells the model to interpret as "the
-project chose not to contest this on the merits," not as evidence of
-anything in particular.
+reporter's claim alone, with an empty rebuttal text the charter
+explicitly tells the model to interpret as "the project chose not to
+contest this on the merits," not as evidence of anything in
+particular.
 
 This was chosen deliberately over the two more obvious options because
 either alternative breaks the contract's integrity under a rational
@@ -90,83 +95,35 @@ adversary:
   including a genuinely critical one, just by not responding — which
   defeats the entire purpose of a bounty arbitration contract.
 
-Escalating to a real verdict on the evidence means a project's
-best move is always to respond if it has a real rebuttal, and silence
-only helps it in the case where it genuinely has nothing to say — in
-which case the code itself should still support or fail to support the
-claim on its own.
-
-## The status-stuck-forever fix, in detail
-
-An early draft of `resolve_dispute` had this shape:
-
-```python
-if d.status == "filed" and deadline_passed:
-    d.status = "response_expired"
-    self.bounties[bounty_id] = d
-    # ... entry.status update ...
-
-d_mem = gl.storage.copy_to_memory(d)
-code_url = _build_raw_url(...)
-
-try:
-    _fetch_text(code_url, hard_required=True)
-except _FetchRequired as exc:
-    raise gl.vm.UserError(f"code_fetch_required_failed:{exc}")
-```
-
-The problem: if GenVM transaction writes are atomic — reverted together
-with the rest of the transaction on a raise, which is the standard
-model and the only one consistent with every other assert-then-write
-pattern in this contract — then raising `gl.vm.UserError` after the
-`response_expired` write would revert that write too. Every future call
-to `resolve_dispute` on that bounty would hit the identical fetch
-failure and revert again, with no exit, since a reporter-supplied bad
-commit hash can never self-correct. That's the exact "stuck forever"
-failure class this whole contract exists to eliminate — just reached
-through a bad hash instead of a silent counterparty, which is precisely
-why it wasn't obvious until traced through explicitly.
-
-**The fix:** a failed hard-required fetch on the reporter's own cited
-commit is checked *before* any status-transition write happens, and
-resolves directly to a terminal `"invalid"` verdict — settled the same
-way any other `"invalid"` verdict settles — rather than raising at all.
-The `response_expired` status write only happens after that check has
-already passed cleanly. This guarantees a single call to
-`resolve_dispute` always reaches some terminal, non-retriable outcome;
-it never partially commits a status change and then fails.
-
-The project's own cited patch fetch is intentionally **not** given this
-same hard-required treatment — it fails soft (a missing/dead patch
-reads as "no effective remediation was demonstrated," which is real
-information the charter tells the model how to weigh), because the
-patch is optional evidence offered in the project's own favor, not the
-artifact the report itself depends on.
+Escalating to a real verdict means a project's best move is always to
+respond if it has a real rebuttal, and silence only helps it in the
+case where it genuinely has nothing to say.
 
 ## Nondet / consensus checklist (run against every future contract, not just this one)
 
-1. `gl.nondet.web.get()` returns a `Response` object (`.body`,
-   `.status_code`), never a plain string.
-2. `run_nondet_unsafe(leader_fn, validator_fn)` — always positional,
+1. `run_nondet_unsafe(leader_fn, validator_fn)` — always positional,
    never keyword args.
-3. `leader_fn` returns an already-parsed dict; `validator_fn`'s argument
+2. `leader_fn` returns an already-parsed dict; `validator_fn`'s argument
    is a `gl.vm.Return | ...` wrapper — check `isinstance(x, gl.vm.Return)`
    before reading `.calldata`.
-4. `leader_fn`/`validator_fn` are nested functions with **zero** `self`
+3. `leader_fn`/`validator_fn` are nested functions with **zero** `self`
    references anywhere in either body.
-5. Storage-backed records are `gl.storage.copy_to_memory()`'d in the
+4. Storage-backed records are `gl.storage.copy_to_memory()`'d in the
    plain deterministic body, strictly before `run_nondet_unsafe`.
-6. Every fixed/constant value (`_CHARTER`, alias tuples, tolerance
+5. Every fixed/constant value (`_CHARTER`, alias tuples, tolerance
    bands) is module-level, never a class-body attribute with a type
    annotation.
-7. Value transfers use `.emit_transfer(value=...)`, never `.send()`,
+6. Value transfers use `.emit_transfer(value=...)`, never `.send()`,
    strictly after `run_nondet_unsafe` returns.
-8. No `float()` anywhere reachable from nondet code — confidence scores
+7. No `float()` anywhere reachable from nondet code — confidence scores
    and date arithmetic both use pure integer parsing.
 
-All eight were re-verified via direct grep against the final file
+All seven were re-verified via direct grep against the final file
 state after every edit, not assumed correct from having been checked
-once earlier in the build.
+once earlier in the build. (An earlier version of this checklist had
+an eighth item about `gl.nondet.web.get()` vs `.render()` — removed
+along with the fetch mechanism itself; see `docs/testing.md` for that
+history if it's ever relevant to a future fetch-based contract.)
 
 ## Datetime arithmetic
 
@@ -176,7 +133,9 @@ consistent with the project's `float()` ban), so `_add_seconds_iso` and
 `_iso_gte` implement pure-integer epoch-second conversion by hand.
 Fuzz-tested against Python's real `datetime` module: every day across
 2025–2029 (4 years, including the 2028 leap year), five offsets each
-(+14d, +365d, +1s, +1hr, -1hr) — 7,305 cases, zero mismatches.
+(+14d, +365d, +1s, +1hr, -1hr) — 7,305 cases, zero mismatches. Re-run
+and reconfirmed after the fetch-removal rewrite, since these helpers
+were hand-copied into the new file version — still zero mismatches.
 
 ## Settlement
 
@@ -185,14 +144,16 @@ branches:
 
 - **`verdict_severity == "invalid"`**: reporter's stake settles 80% to
   the project (if one ever engaged) + 20% to the protocol pool. If no
-  project ever engaged (silent-expiry or unreachable-source path), the
-  full 80% that would have gone to the project goes to the pool instead
-  — there's no one to make whole. Any project counter-stake is returned
-  in full.
+  project ever engaged (silent-expiry path), the full 80% that would
+  have gone to the project goes to the pool instead — there's no one
+  to make whole. Any project counter-stake is returned in full.
 - **Any real severity** (`critical`/`high`/`medium`/`low`): reporter's
   stake is always returned in full. If a project counter-staked, 80% of
   it settles to the reporter as payout, 20% to the pool.
 
 This is a fixed, deterministic consequence of a judged verdict — not
 chance-based, consistent with the ethics framework's stake/slash
-pattern (a security-deposit mechanic, not a wager).
+pattern (a security-deposit mechanic, not a wager). Unaffected by the
+fetch removal — this logic never depended on fetched evidence, only on
+the final verdict severity, and was verified unchanged by direct
+comparison against the pre-rewrite version during the rewrite.

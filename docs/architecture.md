@@ -3,11 +3,11 @@
 ```
 Reporter                          Project
    |                                 |
-   | file_bounty(repo, commit, ...)  |
+   | file_bounty(claim, severity)    |
    |-------------------------------->|
    |         [status: filed]         |
    |                                 |
-   |          14-day window          | rebut(text, patch_commit)
+   |          14-day window          | rebut(bounty_id, rebuttal_text)
    |<--------------------------------|
    |       [status: rebutted]        |
    |                                 |
@@ -18,19 +18,16 @@ Reporter                          Project
    |  Deterministic body:                |
    |  - assert status/deadline gates     |
    |  - copy_to_memory(bounty record)    |
-   |  - build fetch URL from pinned      |
-   |    (owner, repo, commit, path)      |
-   |  - hard-required fetch check        |
-   |    (fail -> terminal "invalid",     |
-   |     never a revert-and-retry)       |
    +-------------------------------------+
                    |
                    v
    +-------------------------------------+
    |  run_nondet_unsafe(leader_fn,       |
    |                    validator_fn)    |
-   |  - leader fetches pinned source +   |
-   |    optional patch, prompts LLM      |
+   |  - leader judges claim vs rebuttal, |
+   |    prompts LLM (no external fetch — |
+   |    see docs/contracts.md's design-  |
+   |    history section for why)         |
    |  - validator re-derives             |
    |    independently, compares          |
    +-------------------------------------+
