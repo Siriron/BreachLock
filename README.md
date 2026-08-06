@@ -14,11 +14,11 @@ from a pinned commit rather than judging free-text claims — that
 mechanism was removed after extensive live testing found GenVM's
 sandbox consistently rejects outbound fetches to every external domain
 tried (GitHub, GitLab, an IPFS gateway) with `SystemError:6:
-forbidden`.** See "First live test results" and "Design history"
-below, and the full investigation in `docs/testing.md`, for what was
-tried and why. This is a real, honestly-stated reduction in what the
-contract can prove — see `docs/contracts.md`'s design-history section
-for the complete reasoning.
+forbidden`.** See "Historical record" below for what was tried and
+why, and the full investigation in `docs/testing.md`. This is a real,
+honestly-stated reduction in what the contract can prove — see
+`docs/contracts.md`'s design-history section for the complete
+reasoning.
 
 ## Why this exists
 
@@ -47,39 +47,35 @@ specifically to avoid two confirmed real bugs found in a prior project
 
 ## Live deployment
 
-**⚠️ Stale relative to the current contract.** The addresses below were
-deployed before tonight's fetch-removal rewrite and point to the
-*old* contract ABI (`file_bounty(repo_owner, repo_name, commit_hash,
-file_path, disputed_claim, claimed_severity)`, five args) — not the
-current one (`file_bounty(disputed_claim, claimed_severity)`, two
-args). The frontend in this repo has been updated to call the new
-signature, so it will NOT work correctly against these old addresses.
-A fresh deployment of the current `contracts/breachlock.py` is needed
-before the frontend can be used against real StudioNet/Bradbury
-addresses again — the table below is preserved as a record of the
-prior deployment, not as current, usable addresses.
+Fresh deployment of the current, claim-based `contracts/breachlock.py`
+(the two-arg `file_bounty(disputed_claim, claimed_severity)` ABI —
+supersedes the old five-arg fetch-based deployment referenced
+elsewhere in this repo's history). Both networks confirmed live.
 
-| Network | Address (OLD ABI — do not use with current frontend) | Deploy TX |
+| Network | Address | Deploy TX |
 |---|---|---|
-| StudioNet | `0x04781181f8071B44411bF0Ebf1bc94e049Fc4677` | [`0xf8d0d630...40fa7904`](https://explorer-studio.genlayer.com/tx/0xf8d0d63081f2a68257e3ca11ebfa4374c97f11389570929a1531ab5440fa7904) |
-| Bradbury | `0x4fdb53874d4C4247D32A5A0570d73684492932fc` | — |
+| StudioNet | `0x950d2497Ac764dead125EF95209eC28deE34517d` | [`0xd9377d0d...ac273957`](https://explorer-studio.genlayer.com/tx/0xd9377d0d78a94753d3214bba4565557898702ba3f8bf02e5766ce9dcac273957) |
+| Bradbury | `0x04e379Db6e62b6851D4B85D3E31A1D32B49DF900` | [explorer link](https://explorer-bradbury.genlayer.com/address/0x04e379Db6e62b6851D4B85D3E31A1D32B49DF900) |
 
-Both confirmed live and deployed (Jul 29, 2026) *at the time*, against
-the then-current fetch-based ABI. StudioNet's deploy transaction was
-independently verified — `GenVM Result: SUCCESS`, `Consensus Result:
-Accepted`, status `FINALIZED`. The Bradbury explorer renders its
-transaction data client-side (same JS-rendering limitation project
-knowledge already notes for the GenLayer SDK reference site), so its
-deploy was confirmed by direct visual check rather than by an
-automated fetch here.
+StudioNet's deploy transaction was independently verified directly via
+the explorer: `GenVM Result: SUCCESS`, `Consensus Result: Accepted`,
+status `FINALIZED`, deployed Aug 6, 2026, 3:24:30 AM. The Bradbury
+explorer renders its transaction data client-side (the same
+JS-rendering limitation project knowledge notes for this explorer and
+the GenLayer SDK reference site), so its deploy tx hash couldn't be
+independently pulled the same way here — confirm it directly in a
+browser, or via the address link above, before citing a specific
+Bradbury tx hash anywhere.
 
-**Next step:** deploy the current `contracts/breachlock.py` fresh to
-both networks, then set the new addresses as
-`VITE_CONTRACT_ADDRESS_STUDIONET` / `VITE_CONTRACT_ADDRESS_BRADBURY` in
-the frontend's environment (Vercel project env vars, or a local `.env`)
-before running or deploying the frontend.
+**Next step:** set `VITE_CONTRACT_ADDRESS_STUDIONET` and
+`VITE_CONTRACT_ADDRESS_BRADBURY` to the two addresses above (Vercel
+project environment variables, or a local `.env`), then deploy/run the
+frontend against them. Run the reproducible full-cycle test in
+`docs/testing.md` against these live addresses before considering the
+claim-based design proven end-to-end — nothing has exercised a real
+`resolve_dispute` judgment against this specific deployment yet.
 
-Frontend: _pending Vercel deploy of the updated frontend code_
+Frontend: _pending Vercel deploy against the addresses above_
 Repo: https://github.com/Siriron/breachlock
 
 ## Tech stack
@@ -110,64 +106,54 @@ npm run dev
 5. Push to GitHub, deploy frontend to Vercel, set the two
    `VITE_CONTRACT_ADDRESS_*` env vars.
 
-## First live test results (Jul 30 2026)
+## Status on the current (claim-based) deployment
 
-Bounty #1 filed and exercised against StudioNet. Confirmed working:
-filing, the 14-day deadline arithmetic (verified against real on-chain
-timestamps), the early-resolution guard (correctly blocked by 5/5
-validators before the deadline), rebutting, and — the more important
-one — the fail-closed path when cited evidence can't be fetched
-(resolved cleanly to `invalid` rather than getting stuck).
+The addresses in "Live deployment" above are a fresh deploy of the
+rewritten, claim-based contract — nothing has been exercised against
+them yet. Run the reproducible full-cycle procedure in
+`docs/testing.md` (`file_bounty` → `rebut` → `resolve_dispute`,
+confirming fetch/settlement/persistence at each stage — minus the
+fetch stage, which no longer exists) before treating this deployment
+as proven.
 
-**Open question, not yet resolved:** the evidence fetch itself failed
-inside GenVM for a URL independently confirmed to work fine in a normal
-browser. The failure path handled it correctly (that's real, proven
-signal), but a real successful fetch-and-judge cycle — the core thing
-this contract exists to do — has not yet been exercised end to end.
-See `docs/testing.md`'s "Live test results" section for the full
-writeup and next steps if picking this back up.
+## Historical record — the fetch-based contract's live testing and staff feedback
 
-## Staff feedback on portal submission (Jul 31 2026) — addressed
+**Everything in this section describes the earlier, fetch-based
+contract, which has since been removed and replaced by the current
+claim-based design (see "Design history" below and
+`docs/contracts.md`).** Preserved because the investigation itself —
+and the reasoning behind the final decision to drop the fetch
+mechanism entirely — is the most load-bearing context in this repo,
+not because any of it describes the current deployment's state.
 
-Pavel Kolosov requested two changes: (1) make source-fetch failures
-retryable rather than instantly conclusive, and (2) add a reproducible
-test proving a full successful fetch → verdict → persistence → payout
-cycle. Both addressed:
+**First live test (Jul 30 2026):** bounty #1 filed and exercised
+against the then-current StudioNet deployment
+(`0x04781181f8071B44411bF0Ebf1bc94e049Fc4677`, now superseded). Filing,
+deadline arithmetic, the early-resolution guard, and rebutting all
+confirmed working. The evidence fetch itself failed inside GenVM for a
+URL independently confirmed to work fine in a normal browser — the
+first sign of what eventually became the `SystemError:6: forbidden`
+finding below.
 
-1. **Fetch failures are now retryable** via a bounded counter
-   (`fetch_failure_count`, ceiling of 3) rather than settling to
-   `"invalid"` on the first failure. Below the ceiling, the contract
-   records the failure and returns cleanly — no raise, so no revert
-   risk — leaving the bounty exactly as callable as before. See
-   `docs/contracts.md`'s "Revision: bounded retries" section for the
-   full design rationale, including why this specific critique was
-   correct: our own earlier live test showed a fetch failing once
-   against a URL that worked fine in a normal browser, direct evidence
-   that not every failure here is a genuinely dead commit.
-2. **A reproducible test procedure** is in `docs/testing.md`. First
-   run (Aug 2 2026) against `octocat/Hello-World`, then `torvalds/linux`
-   — **four consecutive fetch failures total**, against URLs
-   independently confirmed to work fine in a normal browser. Switching
-   `gl.nondet.web.get()` to `gl.nondet.web.render()` (a real, documented
-   API/file-fetch distinction in GenLayer's own docs) was tried as a
-   fix and **did not work** — a fifth failure, identical signature, on
-   a redeployment confirmed to genuinely contain the fix. Further
-   research found the actual cause: GitHub's own official policy
-   (changelog, May 8 2025) heavily rate-limits unauthenticated
-   `raw.githubusercontent.com` access, **scoped by IP address, not by
-   calling function** — which is exactly why switching functions made
-   no difference. **Current fix:** `_build_raw_url()` now targets
-   GitLab's raw-file endpoint instead, whose unauthenticated rate limit
-   is scoped per-project rather than per-IP. An embedded-PAT approach
-   was considered and rejected — a token in public contract source is
-   permanently exposed on-chain, a real security cost this fix avoids
-   needing. **Not yet tested live** — the GitLab URL format is
-   corroborated across multiple sources but hasn't been confirmed by an
-   actual live request from this build environment; verify the exact
-   URL resolves in a browser before spending GEN testing it on-chain.
-   See `docs/testing.md`'s "Investigation" section for the complete,
-   honest history — including the incomplete `.render()` fix, preserved
-   rather than erased.
+**Staff feedback (Jul 31 2026):** Pavel Kolosov requested (1) making
+source-fetch failures retryable rather than instantly conclusive, and
+(2) a reproducible test proving a full fetch → verdict → persistence →
+payout cycle. Both were pursued in the fetch-based design — a bounded
+retry counter was added, and a reproducible test procedure was
+written — but neither ultimately mattered, because the investigation
+that followed (three more rounds: an SDK-function switch, a host
+switch from GitHub to GitLab, then a diagnostic-exception fix) found
+that GenVM's sandbox rejects outbound fetches to every external domain
+tried — GitHub, GitLab, and an IPFS gateway — with an identical,
+deterministic `SystemError:6: forbidden`, regardless of function,
+host, or retry logic. That finding is what led to removing the fetch
+mechanism entirely rather than continuing to patch around it. The
+complete round-by-round investigation — including the two disproven
+theories (a GitHub rate limit, a diagnostic gap masking the real
+error) — is preserved in full in `docs/testing.md`'s "Investigation"
+section, since the reasoning behind each ruled-out theory is still
+worth understanding even though none of them turned out to be the
+actual cause.
 
 ## Known issues found & fixed during build
 
@@ -213,14 +199,18 @@ determinism are both off-limits in nondet-reachable code) was fuzz
 tested against Python's real `datetime` module across 7,305 cases
 spanning four years including the 2028 leap year — zero mismatches.
 
-**Not yet verified:** nothing here has touched a real GenVM runtime —
-no `genvm-lint`, no Studio deploy, no live `gl.nondet.web.get()` call.
-The build environment had no network access. Everything above is
-Python-level logic testing and static audit against the documented
-GenVM rules. Run the full manual test plan in `docs/testing.md` before
-trusting this live — it specifically calls out the timeout and
-unreachable-commit paths, since two of the two real bugs found so far
-lived in edge cases a happy-path test wouldn't reach.
+**Status as of the current claim-based deployment:** the contract
+itself is now live on both StudioNet and Bradbury (see "Live
+deployment" above), confirmed via `GenVM Result: SUCCESS`,
+`Consensus Result: Accepted` on StudioNet's deploy transaction. That
+confirms the deploy succeeded — it does not confirm any write function
+has been exercised against these specific addresses yet. Run the full
+manual test plan in `docs/testing.md` (updated for the current
+two-write-then-resolve flow, no fetch stage) before trusting this
+live — it specifically calls out the edge cases (empty/short claims,
+unrebutted deadline expiry, settlement math) most likely to hide a
+real bug the way the two fixes above did during the fetch-based
+contract's build.
 
 **Open item:** `og-image.png` referenced in `index.html`'s meta tags
 does not exist yet — no image-generation tool was available during
