@@ -15,14 +15,9 @@ interface BountyData {
   project_owner: string;
   reporter_stake: number;
   project_stake: number;
-  repo_owner: string;
-  repo_name: string;
-  commit_hash: string;
-  file_path: string;
-  vulnerability_report: string;
+  disputed_claim: string;
   claimed_severity: string;
   project_rebuttal: string;
-  patch_commit_hash: string;
   status: string;
   verdict_severity: string;
   confidence_bps: number;
@@ -48,7 +43,6 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
   const [actionPending, setActionPending] = useState<"rebut" | "resolve" | null>(null);
 
   const [rebuttalText, setRebuttalText] = useState("");
-  const [patchHash, setPatchHash] = useState("");
   const [projectStake, setProjectStake] = useState("1");
 
   async function refresh() {
@@ -77,10 +71,10 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
     setActionError(null);
     try {
       // Argument order matches contract's rebut(bounty_id,
-      // project_rebuttal, patch_commit_hash) exactly.
+      // project_rebuttal) exactly.
       const { timedOut } = await writeContractMethod(
         "rebut",
-        [bountyId, rebuttalText.trim(), patchHash.trim()],
+        [bountyId, rebuttalText.trim()],
         projectStake
       );
       if (!timedOut) await refresh();
@@ -157,9 +151,6 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
       </div>
 
       <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        <InfoRow label="Repository" value={`${data.repo_owner}/${data.repo_name}`} mono />
-        <InfoRow label="Pinned commit" value={data.commit_hash} mono />
-        <InfoRow label="File path" value={data.file_path} mono />
         <InfoRow label="Filed at" value={data.filed_at} mono />
         <InfoRow label="Response deadline" value={data.response_deadline} mono />
         {data.resolved_at && <InfoRow label="Resolved at" value={data.resolved_at} mono />}
@@ -167,9 +158,9 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
 
       <div className="px-6 py-5">
         <h4 className="font-mono text-xs uppercase tracking-wider text-graphite mb-2">
-          Vulnerability report
+          Disputed claim
         </h4>
-        <p className="text-sm text-ink whitespace-pre-wrap">{data.vulnerability_report}</p>
+        <p className="text-sm text-ink whitespace-pre-wrap">{data.disputed_claim}</p>
       </div>
 
       {data.project_rebuttal && (
@@ -178,11 +169,6 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
             Project rebuttal
           </h4>
           <p className="text-sm text-ink whitespace-pre-wrap">{data.project_rebuttal}</p>
-          {data.patch_commit_hash && (
-            <p className="mono-tag text-xs text-graphite mt-2">
-              Cited patch commit: {data.patch_commit_hash}
-            </p>
-          )}
         </div>
       )}
 
@@ -209,17 +195,10 @@ export function BountyDetail({ bountyId, network }: BountyDetailProps) {
                 value={rebuttalText}
                 onChange={(e) => setRebuttalText(e.target.value)}
                 rows={3}
-                placeholder="Rebuttal — explain why this report doesn't hold, or cite a patch..."
+                placeholder="Rebuttal — explain why this report doesn't hold..."
                 className="w-full border border-graphite-line rounded-sm px-3 py-2 text-sm text-ink focus:border-seal-deep outline-none resize-y"
               />
               <div className="flex flex-wrap gap-3 items-center">
-                <input
-                  type="text"
-                  value={patchHash}
-                  onChange={(e) => setPatchHash(e.target.value)}
-                  placeholder="Patch commit hash (optional)"
-                  className="border border-graphite-line rounded-sm px-3 py-2 text-sm mono-tag flex-1 min-w-[200px]"
-                />
                 <input
                   type="number"
                   min="0"

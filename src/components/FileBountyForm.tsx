@@ -13,11 +13,7 @@ const SEVERITY_OPTIONS = ["critical", "high", "medium", "low"] as const;
 export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
   const { account, connect, connecting, writeContractMethod } = useGenLayer(network);
 
-  const [repoOwner, setRepoOwner] = useState("");
-  const [repoName, setRepoName] = useState("");
-  const [commitHash, setCommitHash] = useState("");
-  const [filePath, setFilePath] = useState("");
-  const [report, setReport] = useState("");
+  const [claim, setClaim] = useState("");
   const [severity, setSeverity] = useState<(typeof SEVERITY_OPTIONS)[number]>("high");
   const [stakeGen, setStakeGen] = useState("1");
 
@@ -25,8 +21,7 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [pendingNote, setPendingNote] = useState(false);
 
-  const canSubmit =
-    repoOwner.trim() && repoName.trim() && commitHash.trim() && filePath.trim() && report.trim().length >= 10;
+  const canSubmit = claim.trim().length >= 10;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,24 +34,25 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
     setPendingNote(true);
     try {
       // Argument order MUST match the contract's file_bounty signature
-      // exactly: (repo_owner, repo_name, commit_hash, file_path,
-      // vulnerability_report, claimed_severity). Confirmed against
-      // contracts/breachlock.py before writing this call site.
+      // exactly: (disputed_claim, claimed_severity). Confirmed against
+      // contracts/breachlock.py before writing this call site. Simpler
+      // than the earlier fetch-based version — see contract's own
+      // module docstring for why the evidence-fetch fields were
+      // removed (SystemError:6: forbidden against every external
+      // domain tried, documented in full in docs/testing.md).
       const { txHash, timedOut } = await writeContractMethod(
         "file_bounty",
-        [repoOwner.trim(), repoName.trim(), commitHash.trim(), filePath.trim(), report.trim(), severity],
+        [claim.trim(), severity],
         stakeGen
       );
 
-      // NOTE: we deliberately do NOT attempt to parse a bounty_id out of
-      // the write receipt here. The exact shape of a write's JSON return
+      // Deliberately do NOT attempt to parse a bounty_id out of the
+      // write receipt here — the exact shape of a write's JSON return
       // value on the transaction receipt is not confirmed anywhere in
-      // project knowledge, and guessing at a field name (e.g.
-      // `receipt.data`) is exactly the class of unverified-assumption
-      // bug that caused a confirmed live failure on a prior contract in
-      // this project (see section 7's .send()/genlayer-js/utils notes).
-      // Until the real field is confirmed, success is surfaced via the
-      // tx hash + explorer link only — never a guessed parse.
+      // project knowledge, and guessing at a field name is exactly the
+      // class of unverified-assumption bug that caused a confirmed
+      // live failure elsewhere in this project. Success is surfaced
+      // via the tx hash + explorer link only.
       if (timedOut) {
         setError(
           `Still waiting on consensus — this can take several minutes for a judged write. Track it directly: tx ${txHash}`
@@ -82,39 +78,20 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
           File a Disclosure
         </h3>
         <p className="text-sm text-ink/70">
-          Pin your report to an exact commit and file. BreachLock fetches the source
-          itself — you never submit a fetch URL.
+          Describe the vulnerability in detail — the more specific and technically
+          concrete your claim, the stronger it stands up to independent judgment.
         </p>
-      </div>
-
-      <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="Repo owner" value={repoOwner} onChange={setRepoOwner} placeholder="acme-corp" />
-        <Field label="Repo name" value={repoName} onChange={setRepoName} placeholder="payments-api" />
-        <Field
-          label="Commit hash"
-          value={commitHash}
-          onChange={setCommitHash}
-          placeholder="a3f9c21e..."
-          mono
-        />
-        <Field
-          label="File path"
-          value={filePath}
-          onChange={setFilePath}
-          placeholder="src/lib/session/deserialize.py"
-          mono
-        />
       </div>
 
       <div className="px-6 py-5">
         <label className="block font-mono text-xs uppercase tracking-wider text-graphite mb-2">
-          Vulnerability report
+          Disputed claim
         </label>
         <textarea
-          value={report}
-          onChange={(e) => setReport(e.target.value)}
-          rows={5}
-          placeholder="Describe the vulnerability, the trigger path, and expected impact..."
+          value={claim}
+          onChange={(e) => setClaim(e.target.value)}
+          rows={6}
+          placeholder="Describe the vulnerability: what's affected, how it can be triggered, and the expected impact. Be specific — vague claims judge worse than detailed ones."
           className="w-full border border-graphite-line rounded-sm px-3 py-2 text-sm text-ink focus:border-seal-deep outline-none resize-y"
         />
       </div>
@@ -172,7 +149,7 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
       <div className="px-6 py-5 flex items-center justify-between gap-4">
         {pendingNote && (
           <p className="text-xs text-graphite mono-tag">
-            this can take several minutes — consensus is judging real evidence
+            this can take several minutes — consensus is judging your claim
           </p>
         )}
         <button
@@ -184,36 +161,5 @@ export function FileBountyForm({ network, onFiled }: FileBountyFormProps) {
         </button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <label className="block font-mono text-xs uppercase tracking-wider text-graphite mb-2">
-        {label}
-      </label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full border border-graphite-line rounded-sm px-3 py-2 text-sm text-ink focus:border-seal-deep outline-none ${
-          mono ? "mono-tag" : ""
-        }`}
-      />
-    </div>
   );
 }

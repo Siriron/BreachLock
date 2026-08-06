@@ -8,8 +8,8 @@ interface RedactedLine {
 
 const SAMPLE_REPORT: RedactedLine[] = [
   { text: "VULNERABILITY CLASS: Remote code execution via deserialization", redactedWidth: "72%" },
-  { text: "AFFECTED PATH:       src/lib/session/deserialize.py", redactedWidth: "58%" },
-  { text: "COMMIT:              a3f9c21 — pinned, contract-fetched", redactedWidth: "80%" },
+  { text: "CLAIM SPECIFICITY:   High — technical detail, reproducible trigger", redactedWidth: "58%" },
+  { text: "REBUTTAL:            None submitted — 14-day window expired", redactedWidth: "80%" },
   { text: "SEVERITY (verdict):  CRITICAL — confidence 940bps", redactedWidth: "40%" },
 ];
 
@@ -38,14 +38,14 @@ export function RedactionHero() {
         </div>
 
         <h1 className="font-mono text-4xl md:text-6xl font-medium leading-[1.05] tracking-tight text-ink mb-10 max-w-3xl">
-          The verdict is only as good as{" "}
-          <span className="text-seal-deep">the evidence it can't fake</span>.
+          No single party decides{" "}
+          <span className="text-seal-deep">whether a claim holds up</span>.
         </h1>
 
         <div className="border-2 border-ink bg-paper shadow-[4px_4px_0_0_rgba(245,196,0,1)] rounded-sm">
           <div className="border-b-2 border-ink px-5 py-3 flex items-center justify-between bg-ink">
             <span className="mono-tag text-xs text-seal uppercase tracking-wider">
-              Disclosure Report — Pinned Evidence
+              Disclosure Report — Independent Review
             </span>
             <span className="mono-tag text-xs text-seal animate-blink">● live</span>
           </div>
@@ -64,8 +64,8 @@ export function RedactionHero() {
         </div>
 
         <p className="mono-tag text-xs text-graphite mt-6 max-w-md">
-          Every disclosure is judged against source fetched at a pinned commit —
-          never a URL either party gets to choose.
+          Every disclosure is judged by independent validators — reporter's claim
+          against project's rebuttal, no single party controls the verdict.
         </p>
       </div>
     </section>

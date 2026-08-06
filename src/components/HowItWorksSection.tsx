@@ -4,17 +4,17 @@ const STEPS = [
   {
     n: "01",
     title: "File",
-    body: "Reporter stakes GEN and discloses a vulnerability against a repo, commit, and file path.",
+    body: "Reporter stakes GEN and discloses a vulnerability as a detailed written claim.",
   },
   {
     n: "02",
     title: "Respond",
-    body: "Project has 14 days to counter-stake and rebut, optionally citing a patch at its own pinned commit.",
+    body: "Project has 14 days to counter-stake and rebut with its own written response.",
   },
   {
     n: "03",
     title: "Resolve",
-    body: "The contract fetches the actual source at the reporter's cited commit and judges severity — with or without a rebuttal.",
+    body: "Independent validators judge the claim's specificity and consistency against the rebuttal — with or without one.",
   },
   {
     n: "04",

@@ -4,20 +4,20 @@ import { FileCode2, GitCommitHorizontal, ShieldAlert, Clock3 } from "lucide-reac
 const FEATURES = [
   {
     icon: GitCommitHorizontal,
-    title: "Evidence you can't relocate",
-    body: "The disputed source is fetched from a pinned commit hash, constructed by the contract itself — never a URL either party submits.",
+    title: "No party controls the record",
+    body: "The claim and rebuttal are both locked to the contract once submitted — neither party can quietly revise their position after the other has responded.",
     span: "md:col-span-2",
   },
   {
     icon: ShieldAlert,
-    title: "Fail closed, not open",
-    body: "If the cited source can't be reached, that's a verdict, not a stall.",
+    title: "Silence isn't a stall",
+    body: "A dispute never sits open forever waiting on a party that won't engage.",
     span: "",
   },
   {
     icon: Clock3,
     title: "14-day response window",
-    body: "Silence doesn't block resolution — it just means the report is judged on the code alone.",
+    body: "Silence doesn't block resolution — it just means the report is judged on the claim alone.",
     span: "",
   },
   {
